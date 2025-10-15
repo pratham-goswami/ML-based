@@ -45,7 +45,6 @@ export function ChatHistoryViewer({
       setIsLoading(true);
       
       const apiSessions = await chatAPI.listChatSessions();
-
       
       // Convert API sessions to our format
       const convertedSessions = apiSessions.map((session: any) => 
