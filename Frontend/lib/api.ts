@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // API base URL
-const API_BASE_URL = 'https://test1.utkarshdeoli.in';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 // Create axios instance with default config
 const api = axios.create({
@@ -215,6 +215,81 @@ export const chatAPI = {
         }
       }
     );
+    return response.data;
+  }
+};
+
+// Analysis APIs
+export const analysisAPI = {
+  // Analyze question papers using syllabus and previous year papers
+  analyzeQuestionPapers: async (syllabusId: string, questionPaperIds: string[]) => {
+    const response = await api.post(
+      addTokenToRequest('/analysis/question-papers'),
+      {
+        syllabus_pdf_id: syllabusId,
+        question_paper_pdf_ids: questionPaperIds
+      }
+    );
+    return response.data;
+  }
+};
+
+// Mock Test APIs
+export const mockTestAPI = {
+  // Generate a new mock test
+  generateMockTest: async (
+    syllabusId: string, 
+    questionPaperIds: string[], 
+    notesId?: string,
+    numMcq: number = 15,
+    numText: number = 5,
+    totalMarks: number = 50,
+    difficultyLevel: string = "medium"
+  ) => {
+    const response = await api.post(
+      addTokenToRequest('/mock-tests/generate'),
+      {
+        syllabus_pdf_id: syllabusId,
+        question_paper_pdf_ids: questionPaperIds,
+        notes_pdf_id: notesId,
+        num_mcq: numMcq,
+        num_text: numText,
+        total_marks: totalMarks,
+        difficulty_level: difficultyLevel
+      }
+    );
+    return response.data;
+  },
+
+  // List all mock tests for the user
+  listMockTests: async () => {
+    const response = await api.get(addTokenToRequest('/mock-tests/'));
+    return response.data.tests;
+  },
+
+  // Get a specific mock test
+  getMockTest: async (testId: string) => {
+    const response = await api.get(addTokenToRequest(`/mock-tests/${testId}`));
+    return response.data;
+  },
+
+  // Submit a mock test and get analysis
+  submitMockTest: async (testId: string, answers: Record<string, string>, timeTaken: number) => {
+    const response = await api.post(
+      addTokenToRequest(`/mock-tests/${testId}/submit`),
+      {
+        test_id: testId,
+        answers: answers,
+        time_taken: timeTaken,
+        submitted_at: new Date().toISOString()
+      }
+    );
+    return response.data;
+  },
+
+  // Get analysis results by submission ID
+  getAnalysisBySubmissionId: async (submissionId: string) => {
+    const response = await api.get(addTokenToRequest(`/mock-tests/submissions/${submissionId}/analysis`));
     return response.data;
   }
 };

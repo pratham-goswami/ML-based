@@ -127,7 +127,7 @@ async def get_pdf_content(pdf_id: str) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     
     return pdf_metadata, vector_data
 
-async def get_relevant_context(pdf_id: str, question: str, top_k: int = 3) -> Tuple[str, List[int]]:
+async def get_relevant_context(pdf_id: str, question: str, top_k: int = 5) -> Tuple[str, List[int]]:
     """
     Get relevant context for a question from a specific PDF
     """

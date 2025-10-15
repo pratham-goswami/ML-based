@@ -66,9 +66,9 @@ async def get_llm_response(prompt: str, context: str = ""):
     try:
         # Send request to local LLM with stream=False
         response = requests.post(
-            "http://ollama.utkarshdeoli.in/api/generate", 
+            "http://127.0.0.1:11434/api/generate", 
             json={
-                "model": "llama3.2:1b",
+                "model": "gemma3:4b",
                 "prompt": prompt,
                 "stream": False
             }

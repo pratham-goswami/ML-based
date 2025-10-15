@@ -24,6 +24,9 @@ try:
     users_collection = db.users
     pdfs_collection = db.pdfs
     chat_sessions_collection = db.chat_sessions
+    # Mock Test Collections
+    mock_tests_collection = db.mock_tests
+    mock_test_submissions_collection = db.mock_test_submissions
 except (ConnectionFailure, ServerSelectionTimeoutError) as e:
     print(f"MongoDB connection error: {e}")
     print("WARNING: Data store service will not work until MongoDB is available")
@@ -33,6 +36,9 @@ except (ConnectionFailure, ServerSelectionTimeoutError) as e:
     users_collection = None
     pdfs_collection = None
     chat_sessions_collection = None
+    # Mock Test Collections
+    mock_tests_collection = None
+    mock_test_submissions_collection = None
 
 # Helper to convert ObjectId to string
 def object_id_to_str(obj):
@@ -237,3 +243,61 @@ async def load_vector_db(pdf_id: str):
         vector_data = json.load(f)
     
     return vector_data
+
+# Mock Test Functions
+async def store_mock_test(mock_test_data: Dict[str, Any]) -> str:
+    """Store a mock test in the database"""
+    if mock_tests_collection is None:
+        raise Exception("Database connection not available")
+    
+    try:
+        result = await mock_tests_collection.insert_one(mock_test_data)
+        return str(result.inserted_id)
+    except Exception as e:
+        raise Exception(f"Error storing mock test: {str(e)}")
+
+async def get_user_mock_tests(user_id: str) -> List[Dict[str, Any]]:
+    """Get all mock tests for a user"""
+    if mock_tests_collection is None:
+        raise Exception("Database connection not available")
+    
+    try:
+        cursor = mock_tests_collection.find({"user_id": user_id}).sort("created_at", -1)
+        tests = await cursor.to_list(length=None)
+        return [object_id_to_str(test) for test in tests]
+    except Exception as e:
+        raise Exception(f"Error fetching user mock tests: {str(e)}")
+
+async def get_mock_test(test_id: str) -> Optional[Dict[str, Any]]:
+    """Get a specific mock test by ID"""
+    if mock_tests_collection is None:
+        raise Exception("Database connection not available")
+    
+    try:
+        test = await mock_tests_collection.find_one({"test_id": test_id})
+        return object_id_to_str(test) if test else None
+    except Exception as e:
+        raise Exception(f"Error fetching mock test: {str(e)}")
+
+async def store_mock_test_submission(submission_data: Dict[str, Any]) -> str:
+    """Store a mock test submission in the database"""
+    if mock_test_submissions_collection is None:
+        raise Exception("Database connection not available")
+    
+    try:
+        result = await mock_test_submissions_collection.insert_one(submission_data)
+        return str(result.inserted_id)
+    except Exception as e:
+        raise Exception(f"Error storing mock test submission: {str(e)}")
+
+async def get_user_mock_test_submissions(user_id: str) -> List[Dict[str, Any]]:
+    """Get all mock test submissions for a user"""
+    if mock_test_submissions_collection is None:
+        raise Exception("Database connection not available")
+    
+    try:
+        cursor = mock_test_submissions_collection.find({"user_id": user_id}).sort("created_at", -1)
+        submissions = await cursor.to_list(length=None)
+        return [object_id_to_str(submission) for submission in submissions]
+    except Exception as e:
+        raise Exception(f"Error fetching user mock test submissions: {str(e)}")

@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
+    # Gemini API settings
+    GEMINI_API_KEY: str = "AIzaSyDlz22I1ddHA3xfCMWuo-NwcSW0PHIn2k8"
+    
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
@@ -29,4 +32,6 @@ MONGODB_DB_NAME = settings.MONGODB_DB_NAME
 MONGODB_CONNECT_TIMEOUT = settings.MONGODB_CONNECT_TIMEOUT
 SECRET_KEY = settings.SECRET_KEY
 ALGORITHM = settings.ALGORITHM
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
+GEMINI_API_KEY = settings.GEMINI_API_KEY
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES

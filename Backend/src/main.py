@@ -1,11 +1,9 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
 import nltk
-from typing import Dict
 
 # Import our routers
-from src.routers import auth_router, pdf_router, question_router
+from src.routers import auth_router, pdf_router, question_router, analysis_router, mock_test_router
 
 app = FastAPI()
 
@@ -22,6 +20,8 @@ app.add_middleware(
 app.include_router(auth_router.router)
 app.include_router(pdf_router.router)
 app.include_router(question_router.router)
+app.include_router(analysis_router.router)
+app.include_router(mock_test_router.router)
 
 @app.get("/")
 async def root():

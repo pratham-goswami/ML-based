@@ -180,3 +180,63 @@ export const DEFAULT_CHAT_HISTORY: ChatSession[] = [
     user_id: '123'
   },
 ];
+
+// Mock Test Types
+export interface MockTestQuestion {
+  id: string;
+  type: 'mcq' | 'text';
+  question: string;
+  options?: string[];
+  correctAnswer?: string;
+  marks: number;
+}
+
+export interface MockTest {
+  test_id: string;
+  title: string;
+  questions: MockTestQuestion[];
+  total_marks: number;
+  time_limit: number;
+  created_at: string;
+  user_id: string;
+  difficulty_level?: string;
+  latest_submission?: {
+    submission_id: string;
+    submitted_at: string;
+    score: number;
+    percentage: number;
+  };
+}
+
+export interface MockTestSubmission {
+  test_id: string;
+  answers: Record<string, string>;
+  time_taken: number;
+  submitted_at: string;
+}
+
+export interface AnswerFeedback {
+  question_id: string;
+  question: string;
+  user_answer: string;
+  correct_answer?: string;
+  is_correct?: boolean;
+  feedback: string;
+  marks_awarded: number;
+  max_marks: number;
+}
+
+export interface MockTestAnalysis {
+  submission_id: string;
+  test_id: string;
+  total_score: number;
+  max_score: number;
+  percentage: number;
+  time_taken: number;
+  feedback_summary: string;
+  question_feedback: AnswerFeedback[];
+  strengths: string[];
+  improvements: string[];
+  study_recommendations: string[];
+  created_at: string;
+}

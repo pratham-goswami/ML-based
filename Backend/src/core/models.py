@@ -76,3 +76,93 @@ class ChatMessageResponse(BaseModel):
     role: str
     content: str
     timestamp: datetime
+
+# Question Paper Analysis Models
+class QuestionPaperAnalysisRequest(BaseModel):
+    syllabus_pdf_id: str
+    question_paper_pdf_ids: List[str]
+
+class UnitAnalysis(BaseModel):
+    unit_name: str
+    weightage_percentage: float
+    important_topics: List[str]
+    difficulty_level: str
+    recommendation: str
+
+class QuestionPattern(BaseModel):
+    question_type: str
+    marks_distribution: Dict[str, int]
+    frequency: int
+    examples: List[str]
+
+class QuestionPaperAnalysisResponse(BaseModel):
+    analysis_id: str
+    overall_summary: str
+    focus_areas: List[str]
+    unit_wise_analysis: List[UnitAnalysis]
+    question_patterns: List[QuestionPattern]
+    sample_questions: List[str]
+    preparation_strategy: str
+    created_at: datetime
+
+# Mock Test Models
+class MockTestQuestion(BaseModel):
+    id: str
+    type: str  # 'mcq' or 'text'
+    question: str
+    options: Optional[List[str]] = None
+    correctAnswer: Optional[str] = None
+    marks: int
+
+class MockTestGenerationRequest(BaseModel):
+    syllabus_pdf_id: str
+    question_paper_pdf_ids: List[str]
+    notes_pdf_id: Optional[str] = None
+    num_mcq: int = 15
+    num_text: int = 5
+    total_marks: int = 50
+    difficulty_level: str = "medium"  # easy, medium, hard
+
+class MockTestResponse(BaseModel):
+    test_id: str
+    title: str
+    questions: List[MockTestQuestion]
+    total_marks: int
+    time_limit: int  # in minutes
+    created_at: datetime
+    user_id: str
+    difficulty_level: Optional[str] = "medium"
+    latest_submission: Optional[Dict[str, Any]] = None
+
+class MockTestSubmission(BaseModel):
+    test_id: str
+    answers: Dict[str, str]  # question_id -> answer
+    time_taken: int  # in seconds
+    submitted_at: datetime
+
+class AnswerFeedback(BaseModel):
+    question_id: str
+    question: str
+    user_answer: str
+    correct_answer: Optional[str] = None
+    is_correct: Optional[bool] = None
+    feedback: str
+    marks_awarded: float
+    max_marks: int
+
+class MockTestAnalysisResponse(BaseModel):
+    submission_id: str
+    test_id: str
+    total_score: float
+    max_score: int
+    percentage: float
+    time_taken: int
+    feedback_summary: str
+    question_feedback: List[AnswerFeedback]
+    strengths: List[str]
+    improvements: List[str]
+    study_recommendations: List[str]
+    created_at: datetime
+
+class MockTestListResponse(BaseModel):
+    tests: List[MockTestResponse]

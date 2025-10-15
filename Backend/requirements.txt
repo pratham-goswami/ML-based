@@ -18,3 +18,5 @@ pyjwt
 passlib[bcrypt]
 python-multipart
 email-validator
+pydantic-settings
+google-generativeai

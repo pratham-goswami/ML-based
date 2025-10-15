@@ -15,10 +15,11 @@ interface ChatInterfaceProps {
   document: Document | null
   initialMessages?: Message[]
   initialChatId?: string
+  onChatSessionUpdate?: (chatSession: ChatSession) => void
   className?: string
 }
 
-export function ChatInterface({ document, initialMessages = [], initialChatId, className }: ChatInterfaceProps) {
+export function ChatInterface({ document, initialMessages = [], initialChatId, onChatSessionUpdate, className }: ChatInterfaceProps) {
   // State for messages and chat session
   const [messages, setMessages] = useState<Message[]>([])
   const [isTyping, setIsTyping] = useState(false)
@@ -125,6 +126,9 @@ export function ChatInterface({ document, initialMessages = [], initialChatId, c
       });
       return;
     }
+
+    // Check if this is the first user message (excluding system messages)
+    const isFirstUserMessage = messages.filter(msg => msg.role === MessageRole.User).length === 0;
     
     // Add user message to UI immediately
     const userMessage: Message = createMessage({
@@ -177,6 +181,17 @@ export function ChatInterface({ document, initialMessages = [], initialChatId, c
       
       // Add the AI message to the state
       setMessages(prev => [...prev, aiMessage]);
+      
+      // If this was the first user message, add the chat session to history
+      if (isFirstUserMessage && onChatSessionUpdate && chatSession) {
+        // Create updated chat session with current messages
+        const updatedChatSession = {
+          ...chatSession,
+          messages: [...messages, userMessage, aiMessage],
+          updated_at: new Date().toISOString()
+        };
+        onChatSessionUpdate(updatedChatSession);
+      }
       
       // Update context if available
       if (responseContext) {

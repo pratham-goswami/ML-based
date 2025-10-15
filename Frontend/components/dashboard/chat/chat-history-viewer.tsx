@@ -45,11 +45,13 @@ export function ChatHistoryViewer({
       setIsLoading(true);
       
       const apiSessions = await chatAPI.listChatSessions();
+
       
       // Convert API sessions to our format
       const convertedSessions = apiSessions.map((session: any) => 
         convertApiSessionToSession(session)
       );
+      console.log("Converted Sessions:", convertedSessions);
       
       formatChatSessions(convertedSessions);
       setIsLoading(false);
@@ -65,13 +67,11 @@ export function ChatHistoryViewer({
       setIsLoading(false);
     }
   };
-
   // Format chat sessions for display
   const formatChatSessions = (sessions: ChatSession[]) => {
-    // Filter based on search term
+    // Filter based on search term and non-empty chats
     const filtered = sessions.filter(chat => 
-      chat.title.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+      chat.title.toLowerCase().includes(searchTerm.toLowerCase())    );
     
     // Sort by most recent first
     const sorted = [...filtered].sort((a, b) => 

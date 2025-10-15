@@ -109,24 +109,87 @@ export default function DashboardPage() {
     return () => window.removeEventListener('resize', checkIsMobile)
   }, [])
 
-  const handleSelectDocument = (doc: Document) => {
-    setSelectedDocument(doc)
-    setSelectedChat(null)
-    setActiveView('document')
-    // Auto-close sidebar on mobile after selection
-    if (isMobile) {
-      setIsSidebarOpen(false)
+  const handleSelectDocument = async (doc: Document) => {
+    try {
+      // Create a new chat session for the selected document
+      const newChatSession = await chatAPI.createChatSession(doc.title, doc.id);
+      
+      setSelectedDocument(doc);
+      setSelectedChat(newChatSession);
+      
+      // Don't add to chat history yet - wait until first message is sent
+      
+      setActiveView('document');
+      
+      // Auto-close sidebar on mobile after selection
+      if (isMobile) {
+        setIsSidebarOpen(false);
+      }
+      
+      toast({
+        title: "New chat session created",
+        description: `Started a new chat for ${doc.title}`,
+      });
+    } catch (error) {
+      console.error("Error creating new chat session:", error);
+      
+      // Fallback: still select the document but without a new chat session
+      setSelectedDocument(doc);
+      setSelectedChat(null);
+      setActiveView('document');
+      
+      if (isMobile) {
+        setIsSidebarOpen(false);
+      }
+      
+      toast({
+        title: "Document selected",
+        description: "Could not create new chat session, but document is loaded.",
+        variant: "destructive"
+      });
     }
   }
 
-  const handleUploadDocument = (doc: Document) => {
-    setDocuments(prev => [...prev, doc])
-    setSelectedDocument(doc)
-    setSelectedChat(null)
-    setActiveView('document')
-    // Auto-close sidebar on mobile after upload
-    if (isMobile) {
-      setIsSidebarOpen(false)
+  const handleUploadDocument = async (doc: Document) => {
+    try {
+      // Create a new chat session for the uploaded document
+      const newChatSession = await chatAPI.createChatSession(doc.title, doc.id);
+      
+      setDocuments(prev => [...prev, doc]);
+      setSelectedDocument(doc);
+      setSelectedChat(newChatSession);
+      
+      // Don't add to chat history yet - wait until first message is sent
+      
+      setActiveView('document');
+      
+      // Auto-close sidebar on mobile after upload
+      if (isMobile) {
+        setIsSidebarOpen(false);
+      }
+      
+      toast({
+        title: "Document uploaded & chat created",
+        description: `Started a new chat for ${doc.title}`,
+      });
+    } catch (error) {
+      console.error("Error creating chat session for uploaded document:", error);
+      
+      // Fallback: still add the document but without a new chat session
+      setDocuments(prev => [...prev, doc]);
+      setSelectedDocument(doc);
+      setSelectedChat(null);
+      setActiveView('document');
+      
+      if (isMobile) {
+        setIsSidebarOpen(false);
+      }
+      
+      toast({
+        title: "Document uploaded",
+        description: "Could not create chat session, but document is available.",
+        variant: "destructive"
+      });
     }
   }
   
@@ -178,6 +241,18 @@ export default function DashboardPage() {
       });
     }
   }
+
+  // Function to add chat session to history when first message is sent
+  const handleChatSessionUpdate = (chatSession: ChatSession) => {
+    // Only add to history if it's not already there
+    setChatHistory(prev => {
+      const exists = prev.some(session => session.id === chatSession.id);
+      if (!exists) {
+        return [chatSession, ...prev];
+      }
+      return prev;
+    });
+  };
 
   if (isLoading) {
     return (
@@ -277,6 +352,7 @@ export default function DashboardPage() {
                     document={selectedDocument}
                     initialMessages={selectedChat?.messages || []}
                     initialChatId={selectedChat?.id}
+                    onChatSessionUpdate={handleChatSessionUpdate}
                     className={`${isMobile ? "flex-1" : "md:w-1/2 lg:w-2/5"}`}
                   />
                 )}
