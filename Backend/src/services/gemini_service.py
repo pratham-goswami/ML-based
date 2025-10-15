@@ -21,7 +21,7 @@ class GeminiService:
         )
         
         self.model = genai.GenerativeModel(
-            'gemini-2.0-flash-exp',
+            'gemini-2.5-flash',
             generation_config=generation_config
         )
     
@@ -171,6 +171,245 @@ IMPORTANT: Return ONLY the JSON object, no additional text or explanation."""
                 "What are the common mistakes students make in this subject?",
             ],
             "preparation_strategy": "1. Start with basic concepts\n2. Practice previous year questions\n3. Focus on understanding rather than memorization\n4. Regular revision of important topics\n5. Time management during exams"
+        }
+    
+    async def generate_mock_test(
+        self,
+        syllabus_content: str,
+        notes_content: str,
+        previous_papers_content: List[str],
+        num_questions: int = 20,
+        difficulty_level: str = "mixed"
+    ) -> Dict[str, Any]:
+        """Generate a mock test paper based on syllabus, notes, and previous question papers"""
+        
+        # Combine previous papers
+        combined_previous_papers = "\n\n---PREVIOUS PAPER---\n\n".join(previous_papers_content)
+        
+        prompt = f"""You are an expert exam paper setter with years of experience. Your task is to create a realistic mock test paper.
+
+INSTRUCTIONS:
+1. CAREFULLY analyze the syllabus to understand course structure and learning outcomes
+2. STUDY the previous year question papers to identify:
+   - Question patterns and formats
+   - Marks distribution (2 marks, 5 marks, 10 marks questions)
+   - Frequently asked topics
+   - Question difficulty progression
+3. REVIEW the notes to understand depth of coverage for each topic
+4. GENERATE questions that:
+   - Are directly relevant to syllabus topics
+   - Follow the same pattern as previous papers
+   - Test conceptual understanding, application, and problem-solving
+   - Have realistic difficulty levels
+   - Cover different units proportionally
+
+SYLLABUS (Use this as PRIMARY reference):
+{syllabus_content[:3000]}
+
+NOTES (Use this for topic depth):
+{notes_content[:3000]}
+
+PREVIOUS YEAR QUESTION PAPERS (Use this for pattern matching):
+{combined_previous_papers[:4000]}
+
+RESPOND ONLY WITH VALID JSON IN THIS EXACT FORMAT:
+{{
+    "exam_metadata": {{
+        "total_marks": 100,
+        "duration_minutes": 180,
+        "total_questions": {num_questions},
+        "pattern_match_confidence": "High/Medium/Low"
+    }},
+    "sections": [
+        {{
+            "section_name": "Section A - Multiple Choice Questions",
+            "instructions": "Answer all questions. Each question carries 2 marks.",
+            "total_marks": 20,
+            "questions": [
+                {{
+                    "question_number": 1,
+                    "question_text": "Which of the following...",
+                    "marks": 2,
+                    "difficulty": "Easy",
+                    "unit": "Unit 1",
+                    "topic": "Specific topic from syllabus",
+                    "type": "MCQ",
+                    "options": ["A) option1", "B) option2", "C) option3", "D) option4"],
+                    "correct_answer": "A",
+                    "explanation": "Brief explanation why this is correct",
+                    "syllabus_reference": "Exact topic from syllabus",
+                    "bloom_level": "Remember/Understand/Apply/Analyze/Evaluate/Create"
+                }}
+            ]
+        }},
+        {{
+            "section_name": "Section B - Short Answer Questions",
+            "instructions": "Answer any 5 questions. Each question carries 5 marks.",
+            "total_marks": 25,
+            "questions": [
+                {{
+                    "question_number": 11,
+                    "question_text": "Explain the concept of...",
+                    "marks": 5,
+                    "difficulty": "Medium",
+                    "unit": "Unit 2",
+                    "topic": "Specific topic from syllabus",
+                    "type": "Short Answer",
+                    "answer_guidelines": ["Point 1", "Point 2", "Point 3"],
+                    "syllabus_reference": "Exact topic from syllabus",
+                    "bloom_level": "Understand/Apply"
+                }}
+            ]
+        }},
+        {{
+            "section_name": "Section C - Long Answer Questions",
+            "instructions": "Answer any 3 questions. Each question carries 10 marks.",
+            "total_marks": 30,
+            "questions": [
+                {{
+                    "question_number": 16,
+                    "question_text": "Discuss in detail...",
+                    "marks": 10,
+                    "difficulty": "Hard",
+                    "unit": "Unit 3",
+                    "topic": "Specific topic from syllabus",
+                    "type": "Long Answer",
+                    "answer_guidelines": ["Introduction", "Main concepts", "Examples", "Conclusion"],
+                    "syllabus_reference": "Exact topic from syllabus",
+                    "bloom_level": "Analyze/Evaluate/Create"
+                }}
+            ]
+        }}
+    ],
+    "marking_scheme": {{
+        "mcq_negative_marking": false,
+        "partial_marking": true,
+        "answer_writing_tips": ["Be concise", "Use diagrams", "Give examples"]
+    }},
+    "topic_coverage": [
+        {{
+            "unit": "Unit 1",
+            "topics_covered": ["topic1", "topic2"],
+            "weightage_percentage": 25,
+            "questions_count": 5
+        }}
+    ],
+    "difficulty_distribution": {{
+        "easy": 30,
+        "medium": 50,
+        "hard": 20
+    }},
+    "preparation_hints": [
+        "Focus on topics X, Y, Z as they appear frequently in previous papers",
+        "Practice numerical problems from Unit 2",
+        "Understand conceptual differences between A and B"
+    ]
+}}
+
+CRITICAL REQUIREMENTS:
+- Every question MUST be traceable to the syllabus
+- Question patterns MUST match previous year papers
+- Marks distribution MUST follow previous paper trends
+- NO generic questions - all must be subject-specific
+- Include a mix of theoretical and practical/numerical questions
+- Questions should test different cognitive levels (Bloom's Taxonomy)
+- Difficulty: {difficulty_level}
+
+Return ONLY the JSON object, no additional text."""
+
+        try:
+            response = self.model.generate_content(prompt)
+            
+            if not response or not response.text:
+                raise HTTPException(
+                    status_code=500,
+                    detail="Empty response from Gemini API"
+                )
+            
+            response_text = response.text.strip()
+            print(f"Mock test generation response: {response_text[:500]}...")
+            
+            # Extract JSON
+            start_idx = response_text.find('{')
+            end_idx = response_text.rfind('}') + 1
+            
+            if start_idx == -1 or end_idx == 0:
+                return self._create_fallback_mock_test(num_questions)
+            
+            json_text = response_text[start_idx:end_idx]
+            mock_test = json.loads(json_text)
+            
+            # Validate the structure
+            if not self._validate_mock_test(mock_test):
+                return self._create_fallback_mock_test(num_questions)
+            
+            return mock_test
+            
+        except json.JSONDecodeError as e:
+            print(f"JSON parsing error in mock test generation: {str(e)}")
+            return self._create_fallback_mock_test(num_questions)
+            
+        except Exception as e:
+            print(f"Error generating mock test: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error generating mock test with Gemini: {str(e)}"
+            )
+    
+    def _validate_mock_test(self, mock_test: Dict[str, Any]) -> bool:
+        """Validate mock test structure"""
+        required_keys = ["exam_metadata", "sections", "marking_scheme", "topic_coverage"]
+        return all(key in mock_test for key in required_keys)
+    
+    def _create_fallback_mock_test(self, num_questions: int) -> Dict[str, Any]:
+        """Create a fallback mock test when generation fails"""
+        return {
+            "exam_metadata": {
+                "total_marks": 100,
+                "duration_minutes": 180,
+                "total_questions": num_questions,
+                "pattern_match_confidence": "Low"
+            },
+            "sections": [
+                {
+                    "section_name": "Section A - Multiple Choice Questions",
+                    "instructions": "Answer all questions. Each question carries 2 marks.",
+                    "total_marks": 20,
+                    "questions": [
+                        {
+                            "question_number": i,
+                            "question_text": f"Sample MCQ question {i}. Please regenerate with proper documents.",
+                            "marks": 2,
+                            "difficulty": "Medium",
+                            "unit": "General",
+                            "topic": "Sample topic",
+                            "type": "MCQ",
+                            "options": ["A) Option 1", "B) Option 2", "C) Option 3", "D) Option 4"],
+                            "correct_answer": "A",
+                            "explanation": "Placeholder explanation",
+                            "syllabus_reference": "Not available",
+                            "bloom_level": "Remember"
+                        }
+                        for i in range(1, min(11, num_questions + 1))
+                    ]
+                }
+            ],
+            "marking_scheme": {
+                "mcq_negative_marking": False,
+                "partial_marking": True,
+                "answer_writing_tips": ["Read questions carefully", "Manage time properly", "Review answers"]
+            },
+            "topic_coverage": [],
+            "difficulty_distribution": {
+                "easy": 33,
+                "medium": 34,
+                "hard": 33
+            },
+            "preparation_hints": [
+                "Unable to generate specific hints due to document processing issues",
+                "Please ensure high-quality PDFs are uploaded",
+                "Retry generation with complete syllabus and previous papers"
+            ]
         }
 
 # Create global instance with proper error handling

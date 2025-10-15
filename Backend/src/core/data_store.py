@@ -5,19 +5,28 @@ from bson import ObjectId
 from datetime import datetime
 import os
 import json
+import asyncio
 
 # Import settings from config
 from src.core.config import MONGODB_URL, MONGODB_DB_NAME, MONGODB_CONNECT_TIMEOUT
-
 # MongoDB connection with error handling
 try:
     client = AsyncIOMotorClient(
         MONGODB_URL,
         serverSelectionTimeoutMS=MONGODB_CONNECT_TIMEOUT
     )
-    # Force a connection to verify it works
-    client.admin.command('ismaster')
-    print(f"Connected to MongoDB at {MONGODB_URL}")
+    # Force a connection to verify it works (run coroutine on current event loop if possible)
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            # Can't run loop from here; skip immediate check and rely on Motor's lazy connection.
+            print("Event loop is already running; skipping initial MongoDB connection check")
+        else:
+            loop.run_until_complete(client.admin.command('ismaster'))
+            print(f"Connected to MongoDB at {MONGODB_URL}")
+    except Exception:
+        # If the synchronous check fails, we'll rely on lazy connection and let actual DB ops surface issues.
+        print(f"Could not verify MongoDB connection at import time; will attempt on first use.")
     
     db = client[MONGODB_DB_NAME]
     # Collections
@@ -38,6 +47,7 @@ except (ConnectionFailure, ServerSelectionTimeoutError) as e:
     chat_sessions_collection = None
     # Mock Test Collections
     mock_tests_collection = None
+    mock_test_submissions_collection = None
     mock_test_submissions_collection = None
 
 # Helper to convert ObjectId to string

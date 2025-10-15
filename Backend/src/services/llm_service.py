@@ -1,10 +1,9 @@
 import json
-import torch
-import aiohttp
-import requests
+import asyncio
 from typing import Dict, Any, Optional, Tuple
 from fastapi import HTTPException
 from src.services.pdf_service import get_relevant_context
+from src.services.gemini_service import gemini_service
 
 async def ask_question(question: str, pdf_id: Optional[str] = None, stream: bool = False):
     """
@@ -61,62 +60,68 @@ async def ask_question(question: str, pdf_id: Optional[str] = None, stream: bool
 
 async def get_llm_response(prompt: str, context: str = ""):
     """
-    Get a non-streaming response from the LLM
+    Get a non-streaming response from Gemini LLM
     """
-    try:
-        # Send request to local LLM with stream=False
-        response = requests.post(
-            "http://127.0.0.1:11434/api/generate", 
-            json={
-                "model": "gemma3:4b",
-                "prompt": prompt,
-                "stream": False
-            }
+    if not gemini_service:
+        raise HTTPException(
+            status_code=503,
+            detail="Gemini service is not available. Please check GEMINI_API_KEY configuration."
         )
+    
+    try:
+        # Send request to Gemini API
+        response = gemini_service.model.generate_content(prompt)
         
-        if response.status_code == 200:
-            result = response.json()
-            return {"answer": result.get("response", "No response from LLM"), "context": context}
-        else:
+        if not response or not response.text:
             raise HTTPException(
-                status_code=response.status_code, 
-                detail=f"Error from LLM server: {response.text}"
+                status_code=500,
+                detail="Empty response from Gemini API"
             )
+        
+        return {
+            "answer": response.text.strip(),
+            "context": context
+        }
     except Exception as e:
         raise HTTPException(
             status_code=500, 
-            detail=f"Error generating response: {str(e)}"
+            detail=f"Error generating response from Gemini: {str(e)}"
         )
 
 async def stream_llm_response(prompt: str, context: str = ""):
     """
-    Get a streaming response from the LLM
+    Get a streaming response from Gemini LLM
     """
+    if not gemini_service:
+        async def error_response():
+            yield json.dumps({"error": "Gemini service is not available. Please check GEMINI_API_KEY configuration."}) + "\n"
+        return error_response
+    
     async def stream_response():
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                "http://ollama.utkarshdeoli.in/api/generate", 
-                json={
-                    "model": "llama3.2:1b",
-                    "prompt": prompt,
-                    "max_tokens": 500,
-                    "stream": True
-                }
-            ) as response:
-                # Add context as first chunk if available
-                if context:
-                    context_data = {"context": context}
-                    yield json.dumps(context_data) + "\n"
-                
-                # Read the streaming response line by line
-                async for line in response.content:
-                    if line:
-                        # Parse the JSON response from each line
-                        try:
-                            data = json.loads(line)
-                            # Yield the token with proper JSON formatting
-                            yield json.dumps(data) + "\n"
-                        except json.JSONDecodeError:
-                            yield '{"error": "Invalid JSON received from LLM"}\n'
+        try:
+            # Add context as first chunk if available
+            if context:
+                context_data = {"context": context}
+                yield json.dumps(context_data) + "\n"
+            
+            # Use Gemini's streaming API
+            response = gemini_service.model.generate_content(prompt, stream=True)
+            
+            # Stream the response chunks
+            for chunk in response:
+                if chunk.text:
+                    # Format as JSON similar to Ollama's response format
+                    data = {
+                        "response": chunk.text,
+                        "done": False
+                    }
+                    yield json.dumps(data) + "\n"
+            
+            # Send final chunk indicating completion
+            yield json.dumps({"response": "", "done": True}) + "\n"
+            
+        except Exception as e:
+            error_data = {"error": f"Error generating streaming response from Gemini: {str(e)}"}
+            yield json.dumps(error_data) + "\n"
     
     return stream_response

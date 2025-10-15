@@ -116,33 +116,48 @@ async def _generate_mock_test_with_gemini(
     total_marks: int,
     difficulty_level: str
 ) -> Dict[str, Any]:
-    """Use Gemini to generate mock test questions"""
+    """Use Gemini to generate mock test questions with enhanced pattern matching"""
     
     # Combine all question papers content
-    combined_question_papers = "\n\n---NEW QUESTION PAPER---\n\n".join(question_papers_content)
+    combined_question_papers = "\n\n---PREVIOUS PAPER---\n\n".join(question_papers_content)
     
     # Calculate marks distribution
     mcq_marks_per_question = 2
-    text_marks_per_question = max(5, (total_marks - num_mcq * mcq_marks_per_question) // num_text)
+    text_marks_per_question = max(5, (total_marks - num_mcq * mcq_marks_per_question) // num_text) if num_text > 0 else 5
     
-    prompt = f"""You are an expert exam creator. Generate a mock test based on the provided materials.
+    prompt = f"""You are an expert exam paper setter with years of experience. Create a realistic mock test paper.
 
-SYLLABUS:
+INSTRUCTIONS:
+1. CAREFULLY analyze the syllabus to understand course structure and learning outcomes
+2. STUDY the previous year question papers to identify:
+   - Question patterns and formats
+   - Marks distribution and question types
+   - Frequently asked topics
+   - Question difficulty progression
+3. REVIEW the notes to understand depth of coverage for each topic
+4. GENERATE questions that:
+   - Are directly relevant to syllabus topics
+   - Follow the same pattern as previous papers
+   - Test conceptual understanding, application, and problem-solving
+   - Have realistic difficulty levels
+   - Cover different units proportionally
+
+SYLLABUS (PRIMARY REFERENCE):
 {syllabus_content[:3000]}
 
-QUESTION PAPERS:
-{combined_question_papers[:4000]}
-
-STUDY NOTES:
+STUDY NOTES (For topic depth):
 {notes_content[:2000] if notes_content else "No additional notes provided"}
+
+PREVIOUS YEAR QUESTION PAPERS (For pattern matching):
+{combined_question_papers[:4000]}
 
 REQUIREMENTS:
 - Generate {num_mcq} Multiple Choice Questions (MCQ) worth {mcq_marks_per_question} marks each
 - Generate {num_text} Descriptive/Text questions worth {text_marks_per_question} marks each
 - Difficulty level: {difficulty_level}
-- Questions should cover different topics from the syllabus
+- ALL questions must be traceable to syllabus topics
 - MCQ should have 4 options with one correct answer
-- Questions should follow the pattern observed in the question papers
+- Follow question patterns from previous papers
 
 RESPOND ONLY WITH VALID JSON IN THIS EXACT FORMAT:
 {{
@@ -150,25 +165,36 @@ RESPOND ONLY WITH VALID JSON IN THIS EXACT FORMAT:
         {{
             "id": "1",
             "type": "mcq",
-            "question": "What is the primary purpose of...",
-            "options": ["Option A", "Option B", "Option C", "Option D"],
-            "correctAnswer": "Option B",
-            "marks": {mcq_marks_per_question}
+            "question": "Which of the following correctly describes...",
+            "options": ["A) Option 1", "B) Option 2", "C) Option 3", "D) Option 4"],
+            "correctAnswer": "A) Option 1",
+            "marks": {mcq_marks_per_question},
+            "unit": "Unit 1",
+            "topic": "Specific topic from syllabus",
+            "difficulty": "Easy/Medium/Hard",
+            "syllabus_reference": "Exact topic from syllabus"
         }},
         {{
-            "id": "2",
+            "id": "{num_mcq + 1}",
             "type": "text",
-            "question": "Explain the concept of... with examples.",
-            "marks": {text_marks_per_question}
+            "question": "Explain the concept of... with suitable examples.",
+            "marks": {text_marks_per_question},
+            "unit": "Unit 2",
+            "topic": "Specific topic from syllabus",
+            "difficulty": "Medium/Hard",
+            "syllabus_reference": "Exact topic from syllabus",
+            "answer_guidelines": ["Point 1", "Point 2", "Point 3"]
         }}
     ]
 }}
 
-IMPORTANT: 
+CRITICAL REQUIREMENTS:
 - Generate exactly {num_mcq + num_text} questions total
-- Ensure question IDs are sequential numbers as strings
-- MCQ questions must have exactly 4 options
-- Text questions should not have options or correctAnswer fields
+- Every question MUST reference a specific syllabus topic
+- Question patterns MUST match previous year papers
+- NO generic questions like "Was this in syllabus?" - all must be subject-specific
+- MCQ options must start with A), B), C), D)
+- Ensure sequential question IDs as strings
 - Return ONLY the JSON object, no additional text"""
 
     try:
@@ -178,6 +204,7 @@ IMPORTANT:
             return _create_fallback_mock_test(num_mcq, num_text, mcq_marks_per_question, text_marks_per_question)
         
         response_text = response.text.strip()
+        print(f"Enhanced mock test generation response: {response_text[:500]}...")
         
         # Extract JSON from response
         start_idx = response_text.find('{')
@@ -204,9 +231,11 @@ IMPORTANT:
         
         return {"questions": questions}
         
-    except json.JSONDecodeError:
+    except json.JSONDecodeError as e:
+        print(f"JSON parsing error in mock test generation: {str(e)}")
         return _create_fallback_mock_test(num_mcq, num_text, mcq_marks_per_question, text_marks_per_question)
-    except Exception:
+    except Exception as e:
+        print(f"Error in mock test generation: {str(e)}")
         return _create_fallback_mock_test(num_mcq, num_text, mcq_marks_per_question, text_marks_per_question)
 
 def _create_fallback_mock_test(num_mcq: int, num_text: int, mcq_marks: int, text_marks: int) -> Dict[str, Any]:
