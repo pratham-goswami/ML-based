@@ -1,11 +1,7 @@
 import axios from 'axios';
 
 // API base URL
-<<<<<<< HEAD
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-=======
-const API_BASE_URL = 'https://test1.utkarshdeoli.in';
->>>>>>> 4580ce0ec90e128a0e7c1a6575fa8b1062dc0e99
 
 // Create axios instance with default config
 const api = axios.create({
@@ -223,7 +219,6 @@ export const chatAPI = {
   }
 };
 
-<<<<<<< HEAD
 // Analysis APIs
 export const analysisAPI = {
   // Analyze question papers using syllabus and previous year papers
@@ -299,6 +294,4 @@ export const mockTestAPI = {
   }
 };
 
-=======
->>>>>>> 4580ce0ec90e128a0e7c1a6575fa8b1062dc0e99
 export default api;

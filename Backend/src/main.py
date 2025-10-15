@@ -1,11 +1,5 @@
-<<<<<<< HEAD
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-=======
-from fastapi import FastAPI, Depends, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
->>>>>>> 4580ce0ec90e128a0e7c1a6575fa8b1062dc0e99
 import nltk
 from typing import Dict
 
@@ -30,11 +24,8 @@ app.add_middleware(
 app.include_router(auth_router.router)
 app.include_router(pdf_router.router)
 app.include_router(question_router.router)
-<<<<<<< HEAD
 app.include_router(analysis_router.router)
 app.include_router(mock_test_router.router)
-=======
->>>>>>> 4580ce0ec90e128a0e7c1a6575fa8b1062dc0e99
 
 @app.get("/")
 async def root():
